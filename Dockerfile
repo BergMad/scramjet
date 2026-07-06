@@ -10,6 +10,7 @@ WORKDIR /app
 
 # Copy package files first for layer caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
+COPY patches/ ./patches/
 COPY packages/ ./packages/
 COPY rspack.config.ts devlib.ts ./
 COPY assets/ ./assets/
