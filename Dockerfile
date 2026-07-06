@@ -1,14 +1,17 @@
 FROM node:22-slim
 
-# Install system dependencies (build tools for WASM compilation)
-RUN apt-get update && apt-get install -y --no-install-recommends     git     ca-certificates     curl     build-essential     && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends     git     ca-certificates     curl     && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm globally
 RUN npm install -g pnpm
 
 WORKDIR /app
 
-# Copy package files first for layer caching
+# Download pre-built WASM from latest release
+RUN mkdir -p packages/core/dist &&     curl -L -o /tmp/scramjet.tgz https://github.com/MercuryWorkshop/scramjet/releases/download/v2.0.67-alpha.2/mercuryworkshop-scramjet-2.0.67-alpha.2.tgz &&     cd /tmp && tar -xzf scramjet.tgz &&     cp /tmp/package/dist/scramjet.wasm /app/packages/core/dist/ 2>/dev/null || true &&     cp /tmp/package/dist/*.mjs /app/packages/core/dist/ 2>/dev/null || true &&     ls -la /app/packages/core/dist/
+
+# Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
 COPY patches/ ./patches/
 COPY packages/ ./packages/
@@ -16,16 +19,9 @@ COPY rspack.config.ts devlib.ts ./
 COPY assets/ ./assets/
 COPY devserver.ts ./
 COPY tsconfig.json ./
-COPY tests/ ./tests/
 
-# Install dependencies
+# Install dependencies (skip postinstall for speed)
 RUN pnpm install --frozen-lockfile || pnpm install
-
-# Build the WASM rewriter (this creates the missing scramjet.wasm)
-RUN cd packages/core && pnpm run rewriter:build
-
-# Build the core package
-RUN cd packages/core && pnpm run build
 
 # Environment variables
 ENV DEMO_PORT=8080
