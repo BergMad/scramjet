@@ -25,6 +25,9 @@ COPY .git/ ./.git/
 # Install dependencies
 RUN pnpm install --frozen-lockfile || pnpm install
 
+# Initialize git for devserver compatibility (it uses git for version info)
+RUN git init && git add -A && git commit -m "Initial commit" || true
+
 # Environment variables
 ENV DEMO_PORT=8080
 ENV WISP_PORT=8081
